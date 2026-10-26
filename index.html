@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pedido Acrilex · FRS</title>
+<meta name="description" content="Monte seu pedido Acrilex e envie pelo WhatsApp para a FRS Representações.">
+<style>
+:root{
+  --bg:#f6f4ef; --card:#ffffff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e1d9;
+  --accent:#e4572e; --accent-ink:#ffffff; --soft:#fdeee8;
+  --ok:#1f8a4c; --wa:#25d366; --warn-bg:#fff6dd; --warn-line:#f0d58a;
+  --art:#6a4fb3; --art-soft:#efeafb;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16161a; --card:#212127; --ink:#f2f2f4; --muted:#a2a2ab; --line:#33333b;
+    --accent:#ff7a52; --accent-ink:#1a0e09; --soft:#3a2219;
+    --warn-bg:#352c14; --warn-line:#6b5826; --art:#b39cf5; --art-soft:#2c2540;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:96px}
+header{background:var(--ink);color:var(--bg);padding:20px 16px}
+header h1{margin:0;font-size:22px}
+header p{margin:4px 0 0;opacity:.75;font-size:14px}
+main{max-width:860px;margin:0 auto;padding:0 16px}
+section{margin-top:20px}
+h2{font-size:17px;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:600px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+label b{color:var(--accent)}
+input,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+textarea{min-height:60px;resize:vertical}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+input.err{border-color:#d33;background:#d331}
+.full{grid-column:1/-1}
+.tabs{display:flex;gap:8px;position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0}
+.tab{flex:1;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:10px;font:inherit;font-weight:600;cursor:pointer;text-align:left}
+.tab small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.tab[aria-selected="true"]{border-color:var(--accent);background:var(--soft)}
+.tab.art[aria-selected="true"]{border-color:var(--art);background:var(--art-soft)}
+.tab .n{float:right;background:var(--accent);color:var(--accent-ink);border-radius:20px;padding:0 8px;font-size:13px}
+.tab.art .n{background:var(--art);color:#fff}
+.note{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:10px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tools input{flex:1 1 220px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:20px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.list{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row.on{background:var(--soft)}
+.pane-art .row.on{background:var(--art-soft)}
+.info{flex:1;min-width:0}
+.code{font:600 13px ui-monospace,Consolas,monospace;color:var(--muted)}
+.name{font-weight:600;font-size:15px;overflow-wrap:anywhere}
+.emb{font-size:12px;color:var(--muted)}
+.tag{font-size:11px;padding:1px 6px;border-radius:6px;background:var(--line);margin-left:4px;vertical-align:1px}
+.obs{margin-top:6px;font-size:14px;padding:6px 10px}
+.step{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none;background:var(--card)}
+.step button{width:38px;height:38px;border:0;background:transparent;color:var(--ink);font-size:20px;cursor:pointer}
+.step input{width:46px;height:38px;border:0;border-radius:0;text-align:center;padding:0;background:transparent;-moz-appearance:textfield}
+.step input::-webkit-outer-spin-button,.step input::-webkit-inner-spin-button{-webkit-appearance:none}
+.colors-btn{border:1px solid var(--art);color:var(--art);background:transparent;border-radius:8px;padding:8px 10px;font:inherit;font-size:14px;cursor:pointer;flex:none}
+.colors{padding:4px 12px 12px 24px;border-top:1px dashed var(--line);background:var(--card)}
+.colors .row{padding:6px 0;border-top:1px solid var(--line)}
+.colors .row.on{background:transparent}
+.colors .row.on .name{color:var(--art)}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+.more{display:block;width:100%;padding:12px;border:0;border-top:1px solid var(--line);background:var(--card);color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px;justify-content:center;z-index:10}
+.bar .sum{font-size:14px;color:var(--muted)}
+.bar .sum b{color:var(--ink);font-size:16px}
+.btn{border:0;border-radius:10px;padding:12px 18px;font:inherit;font-weight:700;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.btn.wa{background:var(--wa);color:#08301a}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:600}
+.btn:disabled{opacity:.45;cursor:default}
+dialog{border:0;border-radius:14px;padding:0;width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 24px);background:var(--card);color:var(--ink)}
+dialog::backdrop{background:#0008}
+.dlg-h{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.dlg-h h2{margin:0}
+.dlg-b{padding:14px 16px;overflow:auto;max-height:calc(100vh - 200px)}
+.dlg-f{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+pre{white-space:pre-wrap;font:13px/1.45 ui-monospace,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;margin:0}
+.x{border:0;background:transparent;font-size:24px;color:var(--muted);cursor:pointer}
+.alert{color:#c62828;font-size:14px;margin-bottom:10px}
+footer{text-align:center;color:var(--muted);font-size:12px;margin:28px 0 8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pedido Acrilex</h1>
+  <p>FRS Representações · monte seu pedido e envie pelo WhatsApp</p>
+</header>
+
+<main>
+  <section>
+    <h2>1. Dados da loja</h2>
+    <div class="card grid" id="dados">
+      <div class="full"><label for="f-loja">Nome da loja / Razão social <b>*</b></label><input id="f-loja" autocomplete="organization"></div>
+      <div><label for="f-cnpj">CNPJ <b>*</b></label><input id="f-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18"></div>
+      <div><label for="f-cidade">Cidade / UF <b>*</b></label><input id="f-cidade" placeholder="Ex.: Maringá/PR"></div>
+      <div><label for="f-transp">Transportadora <b>*</b></label><input id="f-transp"></div>
+      <div><label for="f-comprador">Comprador (nome)</label><input id="f-comprador" autocomplete="name"></div>
+      <div class="full"><label for="f-obs">Observação</label><textarea id="f-obs" placeholder="Prazo, entrega, alguma dúvida..."></textarea></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Escolha os produtos</h2>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="t-camp" aria-selected="true" data-pane="camp">Volta às Aulas <span class="n" id="n-camp" hidden></span><small>Escolar + Brinquedos · campanha</small></button>
+      <button class="tab art" role="tab" id="t-art" aria-selected="false" data-pane="art">Artesanato <span class="n" id="n-art" hidden></span><small>Fora da campanha</small></button>
+    </div>
+
+    <div id="pane-camp">
+      <div class="note"><b>Campanha Escolar e Brinquedos 2026/27.</b> Só os itens desta aba entram nas condições da campanha. A quantidade é em <b>embalagens</b> (caixa/display); o número de unidades aparece em cada item.</div>
+      <div class="tools">
+        <input id="q-camp" type="search" placeholder="Buscar por nome ou código...">
+      </div>
+      <div class="tools" id="chips">
+        <button class="chip" aria-pressed="true" data-g="">Todos</button>
+        <button class="chip" aria-pressed="false" data-g="E">Escolar</button>
+        <button class="chip" aria-pressed="false" data-g="B">Brinquedos</button>
+        <button class="chip" aria-pressed="false" data-g="L">Lançamentos 2027</button>
+        <button class="chip" aria-pressed="false" data-g="sel">Só os escolhidos</button>
+      </div>
+      <div class="list" id="list-camp"></div>
+    </div>
+
+    <div id="pane-art" class="pane-art" hidden>
+      <div class="note"><b>Artesanato não entra na campanha Volta às Aulas.</b> Se você escolher itens aqui, eles seguem como um pedido separado, com as condições normais de artesanato. Para tintas com cor, toque em <b>Cores</b> e informe a quantidade de cada cor.</div>
+      <div class="tools">
+        <input id="q-art" type="search" placeholder="Buscar por nome, código ou cor...">
+        <button class="chip" aria-pressed="false" id="sel-art">Só os escolhidos</button>
+      </div>
+      <div class="list" id="list-art"></div>
+    </div>
+  </section>
+
+  <footer>Dúvidas? Fale com a FRS no WhatsApp (44) 99908-1166</footer>
+</main>
+
+<div class="bar">
+  <div class="sum" id="sum"><b>0</b> itens</div>
+  <button class="btn" id="go" disabled>Revisar e enviar</button>
+</div>
+
+<dialog id="dlg">
+  <div class="dlg-h"><h2>Revisar pedido</h2><button class="x" aria-label="Fechar" id="close">×</button></div>
+  <div class="dlg-b">
+    <div class="alert" id="faltando" hidden></div>
+    <pre id="preview"></pre>
+  </div>
+  <div class="dlg-f">
+    <button class="btn ghost" id="limpar">Limpar pedido</button>
+    <button class="btn ghost" id="copiar">Copiar texto</button>
+    <button class="btn wa" id="enviar">Enviar no WhatsApp</button>
+  </div>
+</dialog>
+
+<script src="produtos.js"></script>
+<script>
+const WHATSAPP = "5544999081166";
+const GRUPOS = {E:"Escolar", B:"Brinquedo", L:"Lançamento 2027"};
+const PAGE = 60;
+const { camp: CAMP, art: ART } = window.PRODUTOS;
+const ARTMAP = Object.fromEntries(ART.map(p => [p.c, p]));
+const CAMPMAP = Object.fromEntries(CAMP.map(p => [p.c, p]));
+
+// Pedido: camp[code] = {q, obs}; art[code] = {q} ou art[code|cor] = {q}
+let pedido = load("acx-pedido", {camp:{}, art:{}});
+const campos = ["loja","cnpj","cidade","transp","comprador","obs"];
+
+function load(k, def){ try { return JSON.parse(localStorage.getItem(k)) || def; } catch(e){ return def; } }
+function save(){ try { localStorage.setItem("acx-pedido", JSON.stringify(pedido)); } catch(e){} }
+const $ = s => document.querySelector(s);
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// ---- dados da loja
+const dadosSalvos = load("acx-dados", {});
+campos.forEach(c => {
+  const el = $("#f-"+c);
+  el.value = dadosSalvos[c] || "";
+  el.addEventListener("input", () => {
+    if (c === "cnpj") el.value = mascaraCnpj(el.value);
+    el.classList.remove("err");
+    dadosSalvos[c] = el.value;
+    try { localStorage.setItem("acx-dados", JSON.stringify(dadosSalvos)); } catch(e){}
+  });
+});
+function mascaraCnpj(v){
+  const d = v.replace(/\D/g,"").slice(0,14);
+  return d.replace(/^(\d{2})(\d)/,"$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/,"$1.$2.$3")
+          .replace(/\.(\d{3})(\d)/,".$1/$2").replace(/(\d{4})(\d)/,"$1-$2");
+}
+function cnpjValido(v){
+  const d = v.replace(/\D/g,"");
+  if (d.length !== 14 || /^(\d)\1+$/.test(d)) return false;
+  const dv = n => { let s = 0, p = n - 7; for (let i = 0; i < n; i++){ s += +d[i] * p--; if (p < 2) p = 9; } const r = s % 11; return r < 2 ? 0 : 11 - r; };
+  return dv(12) === +d[12] && dv(13) === +d[13];
+}
+
+// ---- abas
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x === t));
+  $("#pane-camp").hidden = t.dataset.pane !== "camp";
+  $("#pane-art").hidden = t.dataset.pane !== "art";
+}));
+
+// ---- stepper
+function stepper(key, q){
+  return `<div class="step" data-key="${esc(key)}"><button type="button" data-d="-1" aria-label="Diminuir">−</button><input type="number" min="0" inputmode="numeric" value="${q||""}" placeholder="0" aria-label="Quantidade de embalagens"><button type="button" data-d="1" aria-label="Aumentar">+</button></div>`;
+}
+function bindSteppers(root, onChange){
+  root.addEventListener("click", e => {
+    const b = e.target.closest(".step button"); if (!b) return;
+    const inp = b.parentElement.querySelector("input");
+    inp.value = Math.max(0, (+inp.value || 0) + +b.dataset.d) || "";
+    onChange(b.parentElement.dataset.key, +inp.value || 0, b.parentElement);
+  });
+  root.addEventListener("input", e => {
+    if (!e.target.matches(".step input")) return;
+    const v = Math.max(0, Math.floor(+e.target.value || 0));
+    onChange(e.target.parentElement.dataset.key, v, e.target.parentElement);
+  });
+}
+
+// ---- campanha
+let gCamp = "", limCamp = PAGE;
+function renderCamp(){
+  const q = norm($("#q-camp").value.trim());
+  const itens = CAMP.filter(p =>
+    (gCamp === "sel" ? pedido.camp[p.c]?.q > 0 : !gCamp || p.g === gCamp) &&
+    (!q || norm(p.n).includes(q) || p.c.includes(q)));
+  const html = itens.slice(0, limCamp).map(p => {
+    const it = pedido.camp[p.c] || {};
+    return `<div class="row${it.q ? " on" : ""}">
+      <div class="info"><div class="code">${p.c}<span class="tag">${GRUPOS[p.g]}</span></div>
+        <div class="name">${esc(p.n)}</div><div class="emb">Embalagem com ${p.e} un.</div>
+        ${it.q ? `<input class="obs" data-obs="${p.c}" placeholder="Cores ou observação deste item (opcional)" value="${esc(it.obs||"")}">` : ""}
+      </div>${stepper(p.c, it.q)}</div>`;
+  }).join("");
+  $("#list-camp").innerHTML = (html || `<div class="empty">Nenhum produto encontrado.</div>`) +
+    (itens.length > limCamp ? `<button class="more" id="more-camp">Mostrar mais (${itens.length - limCamp})</button>` : "");
+}
+bindSteppers($("#list-camp"), (code, q) => {
+  if (q) pedido.camp[code] = {...pedido.camp[code], q}; else delete pedido.camp[code];
+  save(); totais();
+  // re-render só a linha para não perder o foco ao digitar
+  const row = $(`#list-camp .step[data-key="${code}"]`).closest(".row");
+  const tinha = row.classList.contains("on");
+  row.classList.toggle("on", q > 0);
+  if (!!q !== tinha){
+    const info = row.querySelector(".info");
+    const o = info.querySelector(".obs");
+    if (q && !o) info.insertAdjacentHTML("beforeend", `<input class="obs" data-obs="${code}" placeholder="Cores ou observação deste item (opcional)" value="">`);
+    if (!q && o) o.remove();
+  }
+});
+$("#list-camp").addEventListener("input", e => {
+  if (!e.target.dataset.obs) return;
+  const it = pedido.camp[e.target.dataset.obs]; if (it){ it.obs = e.target.value; save(); }
+});
+$("#list-camp").addEventListener("click", e => { if (e.target.id === "more-camp"){ limCamp += PAGE; renderCamp(); } });
+$("#q-camp").addEventListener("input", () => { limCamp = PAGE; renderCamp(); });
+$("#chips").addEventListener("click", e => {
+  const c = e.target.closest(".chip"); if (!c) return;
+  document.querySelectorAll("#chips .chip").forEach(x => x.setAttribute("aria-pressed", x === c));
+  gCamp = c.dataset.g; limCamp = PAGE; renderCamp();
+});
+
+// ---- artesanato
+let selArt = false, limArt = PAGE;
+const abertos = new Set();
+const qArt = p => p.k.length ? p.k.reduce((s,[cor]) => s + (pedido.art[p.c+"|"+cor]?.q || 0), 0) : (pedido.art[p.c]?.q || 0);
+function renderArt(){
+  const q = norm($("#q-art").value.trim());
+  const itens = ART.filter(p => (!selArt || qArt(p) > 0) &&
+    (!q || norm(p.n).includes(q) || p.c.includes(q) || p.k.some(([cor, nome]) => cor === q || norm(nome).includes(q))));
+  const html = itens.slice(0, limArt).map(p => {
+    const tot = qArt(p);
+    const head = `<div class="info"><div class="code">${p.c}</div><div class="name">${esc(p.n)}</div>
+      <div class="emb">Embalagem com ${p.e} un.${p.k.length ? ` · ${p.k.length} cores` : ""}${tot && p.k.length ? ` · <b>${tot} emb. escolhidas</b>` : ""}</div></div>`;
+    if (!p.k.length) return `<div class="row${tot ? " on" : ""}">${head}${stepper(p.c, tot)}</div>`;
+    const aberto = abertos.has(p.c) || (q && p.k.some(([cor, nome]) => cor === q || norm(nome).includes(q)));
+    const cores = aberto ? `<div class="colors">${p.k.filter(([cor, nome]) => !q || norm(p.n).includes(q) || p.c.includes(q) || cor === q || norm(nome).includes(q)).map(([cor, nome]) => {
+      const v = pedido.art[p.c+"|"+cor]?.q;
+      return `<div class="row${v ? " on" : ""}"><div class="info"><div class="name">${esc(nome)}</div><div class="code">cor ${cor}</div></div>${stepper(p.c+"|"+cor, v)}</div>`;
+    }).join("")}</div>` : "";
+    return `<div class="row${tot ? " on" : ""}">${head}<button class="colors-btn" data-open="${p.c}">${aberto ? "Fechar" : "Cores"}</button></div>${cores}`;
+  }).join("");
+  $("#list-art").innerHTML = (html || `<div class="empty">Nenhum produto encontrado.</div>`) +
+    (itens.length > limArt ? `<button class="more" id="more-art">Mostrar mais (${itens.length - limArt})</button>` : "");
+}
+bindSteppers($("#list-art"), (key, q, el) => {
+  if (q) pedido.art[key] = {q}; else delete pedido.art[key];
+  save(); totais();
+  el.closest(".row").classList.toggle("on", q > 0);
+  const code = key.split("|")[0], p = ARTMAP[code];
+  if (p.k.length){
+    // atualiza o resumo do produto pai
+    const btn = $(`#list-art [data-open="${code}"]`);
+    if (btn){
+      const pai = btn.closest(".row"), tot = qArt(p);
+      pai.classList.toggle("on", tot > 0);
+      pai.querySelector(".emb").innerHTML = `Embalagem com ${p.e} un. · ${p.k.length} cores${tot ? ` · <b>${tot} emb. escolhidas</b>` : ""}`;
+    }
+  }
+});
+$("#list-art").addEventListener("click", e => {
+  if (e.target.id === "more-art"){ limArt += PAGE; renderArt(); return; }
+  const c = e.target.dataset.open; if (!c) return;
+  abertos.has(c) ? abertos.delete(c) : abertos.add(c); renderArt();
+});
+$("#q-art").addEventListener("input", () => { limArt = PAGE; renderArt(); });
+$("#sel-art").addEventListener("click", e => { selArt = !selArt; e.target.setAttribute("aria-pressed", selArt); limArt = PAGE; renderArt(); });
+
+// ---- totais e mensagem
+function linhasCamp(){
+  return CAMP.filter(p => pedido.camp[p.c]?.q > 0).map(p => ({p, ...pedido.camp[p.c]}));
+}
+function linhasArt(){
+  const out = [];
+  ART.forEach(p => {
+    if (!p.k.length){ const q = pedido.art[p.c]?.q; if (q) out.push({c:p.c, n:p.n, q}); return; }
+    p.k.forEach(([cor, nome]) => { const q = pedido.art[p.c+"|"+cor]?.q; if (q) out.push({c:p.c, n:p.n, cor, corNome:nome, q}); });
+  });
+  return out;
+}
+function totais(){
+  const c = linhasCamp(), a = linhasArt();
+  const emb = c.reduce((s,x) => s + x.q, 0) + a.reduce((s,x) => s + x.q, 0);
+  $("#sum").innerHTML = `<b>${c.length + a.length}</b> itens · ${emb} emb.`;
+  $("#go").disabled = !(c.length + a.length);
+  $("#n-camp").hidden = !c.length; $("#n-camp").textContent = c.length;
+  $("#n-art").hidden = !a.length; $("#n-art").textContent = a.length;
+}
+const pad = (s, n) => String(s).padStart(n);
+function mensagem(){
+  const v = Object.fromEntries(campos.map(c => [c, $("#f-"+c).value.trim()]));
+  const c = linhasCamp(), a = linhasArt();
+  let t = `*PEDIDO ACRILEX*\n`;
+  t += `Loja: ${v.loja}\nCNPJ: ${v.cnpj}\nCidade: ${v.cidade}\nTransportadora: ${v.transp}\n`;
+  if (v.comprador) t += `Comprador: ${v.comprador}\n`;
+  if (v.obs) t += `Obs.: ${v.obs}\n`;
+  if (c.length){
+    t += `\n*CAMPANHA VOLTA ÀS AULAS (Escolar + Brinquedos)*\n\`\`\`\nCÓDIGO  QTD  PRODUTO\n`;
+    c.forEach(x => {
+      t += `${x.p.c}  ${pad(x.q,3)}  ${x.p.n} (emb ${x.p.e})\n`;
+      if (x.obs?.trim()) t += `             > ${x.obs.trim()}\n`;
+    });
+    t += `\`\`\`\nTotal: ${c.length} itens, ${c.reduce((s,x)=>s+x.q,0)} embalagens\n`;
+  }
+  if (a.length){
+    t += `\n*ARTESANATO (fora da campanha)*\n\`\`\`\nCÓDIGO  COR  QTD  PRODUTO\n`;
+    a.forEach(x => {
+      const emb = ARTMAP[x.c].e;
+      t += `${x.c}  ${x.cor || " - "}  ${pad(x.q,3)}  ${x.n}${x.corNome ? " " + x.corNome : ""} (emb ${emb})\n`;
+    });
+    t += `\`\`\`\nTotal: ${a.length} itens, ${a.reduce((s,x)=>s+x.q,0)} embalagens\n`;
+  }
+  t += `\nQuantidades em embalagens (caixa/display).`;
+  return t;
+}
+function faltando(){
+  const f = [];
+  [["loja","nome da loja"],["cnpj","CNPJ"],["cidade","cidade"],["transp","transportadora"]].forEach(([c, n]) => {
+    const el = $("#f-"+c), bad = c === "cnpj" ? !cnpjValido(el.value) : !el.value.trim();
+    el.classList.toggle("err", bad);
+    if (bad) f.push(c === "cnpj" && el.value.trim() ? "CNPJ válido (confira os números)" : n);
+  });
+  return f;
+}
+$("#go").addEventListener("click", () => {
+  const f = faltando();
+  $("#faltando").hidden = !f.length;
+  $("#faltando").textContent = f.length ? "Antes de enviar, preencha: " + f.join(", ") + "." : "";
+  $("#enviar").disabled = !!f.length;
+  $("#preview").textContent = mensagem();
+  $("#dlg").showModal();
+});
+$("#close").addEventListener("click", () => {
+  $("#dlg").close();
+  const primeiro = document.querySelector("#dados input.err"); if (primeiro){ primeiro.scrollIntoView({block:"center"}); primeiro.focus(); }
+});
+$("#enviar").addEventListener("click", () => {
+  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensagem())}`, "_blank");
+});
+$("#copiar").addEventListener("click", async e => {
+  try { await navigator.clipboard.writeText(mensagem()); e.target.textContent = "Copiado!"; }
+  catch(err){ e.target.textContent = "Selecione o texto e copie"; }
+  setTimeout(() => e.target.textContent = "Copiar texto", 2000);
+});
+$("#limpar").addEventListener("click", () => {
+  if (!confirm("Apagar todos os produtos escolhidos? Os dados da loja continuam.")) return;
+  pedido = {camp:{}, art:{}}; save(); $("#dlg").close(); renderCamp(); renderArt(); totais();
+});
+
+// remove do pedido salvo códigos que saíram da tabela
+Object.keys(pedido.camp).forEach(k => { if (!CAMPMAP[k]) delete pedido.camp[k]; });
+Object.keys(pedido.art).forEach(k => { if (!ARTMAP[k.split("|")[0]]) delete pedido.art[k]; });
+renderCamp(); renderArt(); totais();
+</script>
+</body>
+</html>
