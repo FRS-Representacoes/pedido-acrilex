@@ -69,6 +69,13 @@ input.err{border-color:#d33;background:#d331}
 .colors .row{padding:6px 0;border-top:1px solid var(--line)}
 .colors .row.on{background:transparent}
 .colors .row.on .name{color:var(--art)}
+.thumb{width:64px;height:64px;object-fit:contain;border-radius:8px;background:#fff;border:1px solid var(--line);flex:none;padding:2px;cursor:zoom-in}
+.thumb.none{cursor:default;display:grid;place-items:center;font-size:11px;color:var(--muted);background:var(--bg);text-align:center}
+.sw{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);flex:none;box-shadow:inset 0 0 0 2px #fff6}
+.sw.none{background:repeating-linear-gradient(45deg,var(--bg),var(--bg) 4px,var(--line) 4px,var(--line) 8px)}
+#zoom{width:min(420px,calc(100vw - 24px));background:#fff;color:#1d1d1f;text-align:center}
+#zoom img{width:100%;height:auto;display:block;padding:12px}
+#zoom p{margin:0;padding:0 16px 16px;font-weight:600}
 .empty{padding:24px;text-align:center;color:var(--muted)}
 .more{display:block;width:100%;padding:12px;border:0;border-top:1px solid var(--line);background:var(--card);color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px;justify-content:center;z-index:10}
@@ -162,6 +169,8 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin:28px 0 8px}
   </div>
 </dialog>
 
+<dialog id="zoom"><form method="dialog"><button class="x" style="float:right" aria-label="Fechar">×</button></form><img alt=""><p></p></dialog>
+
 <script src="produtos.js"></script>
 <script>
 const WHATSAPP = "5544999081166";
@@ -212,6 +221,20 @@ document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () =>
   $("#pane-art").hidden = t.dataset.pane !== "art";
 }));
 
+// ---- fotos
+function foto(p){
+  return p.i
+    ? `<img class="thumb" src="img/${p.c}.jpg" alt="" loading="lazy" data-zoom="${p.c}">`
+    : `<span class="thumb none">sem foto</span>`;
+}
+document.addEventListener("click", e => {
+  const c = e.target.dataset?.zoom; if (!c) return;
+  const p = CAMPMAP[c] || ARTMAP[c];
+  $("#zoom img").src = `img/${c}.jpg`;
+  $("#zoom p").textContent = `${c} · ${p.n}`;
+  $("#zoom").showModal();
+});
+
 // ---- stepper
 function stepper(key, q){
   return `<div class="step" data-key="${esc(key)}"><button type="button" data-d="-1" aria-label="Diminuir">−</button><input type="number" min="0" inputmode="numeric" value="${q||""}" placeholder="0" aria-label="Quantidade de embalagens"><button type="button" data-d="1" aria-label="Aumentar">+</button></div>`;
@@ -239,7 +262,7 @@ function renderCamp(){
     (!q || norm(p.n).includes(q) || p.c.includes(q)));
   const html = itens.slice(0, limCamp).map(p => {
     const it = pedido.camp[p.c] || {};
-    return `<div class="row${it.q ? " on" : ""}">
+    return `<div class="row${it.q ? " on" : ""}">${foto(p)}
       <div class="info"><div class="code">${p.c}<span class="tag">${GRUPOS[p.g]}</span></div>
         <div class="name">${esc(p.n)}</div><div class="emb">Embalagem com ${p.e} un.</div>
         ${it.q ? `<input class="obs" data-obs="${p.c}" placeholder="Cores ou observação deste item (opcional)" value="${esc(it.obs||"")}">` : ""}
@@ -284,13 +307,13 @@ function renderArt(){
     (!q || norm(p.n).includes(q) || p.c.includes(q) || p.k.some(([cor, nome]) => cor === q || norm(nome).includes(q))));
   const html = itens.slice(0, limArt).map(p => {
     const tot = qArt(p);
-    const head = `<div class="info"><div class="code">${p.c}</div><div class="name">${esc(p.n)}</div>
+    const head = `${foto(p)}<div class="info"><div class="code">${p.c}</div><div class="name">${esc(p.n)}</div>
       <div class="emb">Embalagem com ${p.e} un.${p.k.length ? ` · ${p.k.length} cores` : ""}${tot && p.k.length ? ` · <b>${tot} emb. escolhidas</b>` : ""}</div></div>`;
     if (!p.k.length) return `<div class="row${tot ? " on" : ""}">${head}${stepper(p.c, tot)}</div>`;
     const aberto = abertos.has(p.c) || (q && p.k.some(([cor, nome]) => cor === q || norm(nome).includes(q)));
-    const cores = aberto ? `<div class="colors">${p.k.filter(([cor, nome]) => !q || norm(p.n).includes(q) || p.c.includes(q) || cor === q || norm(nome).includes(q)).map(([cor, nome]) => {
+    const cores = aberto ? `<div class="colors">${p.k.filter(([cor, nome]) => !q || norm(p.n).includes(q) || p.c.includes(q) || cor === q || norm(nome).includes(q)).map(([cor, nome, hex]) => {
       const v = pedido.art[p.c+"|"+cor]?.q;
-      return `<div class="row${v ? " on" : ""}"><div class="info"><div class="name">${esc(nome)}</div><div class="code">cor ${cor}</div></div>${stepper(p.c+"|"+cor, v)}</div>`;
+      return `<div class="row${v ? " on" : ""}"><span class="sw${hex ? "" : " none"}"${hex ? ` style="background:${hex}"` : ""}></span><div class="info"><div class="name">${esc(nome)}</div><div class="code">cor ${cor}</div></div>${stepper(p.c+"|"+cor, v)}</div>`;
     }).join("")}</div>` : "";
     return `<div class="row${tot ? " on" : ""}">${head}<button class="colors-btn" data-open="${p.c}">${aberto ? "Fechar" : "Cores"}</button></div>${cores}`;
   }).join("");
