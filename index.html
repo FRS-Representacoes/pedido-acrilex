@@ -69,7 +69,7 @@ input.err{border-color:#d33;background:#d331}
 .colors .row{padding:6px 0;border-top:1px solid var(--line)}
 .colors .row.on{background:transparent}
 .colors .row.on .name{color:var(--art)}
-.thumb{width:64px;height:64px;object-fit:contain;border-radius:8px;background:#fff;border:1px solid var(--line);flex:none;padding:2px;cursor:zoom-in}
+.thumb{width:72px;height:72px;object-fit:contain;border-radius:8px;background:#fff;border:1px solid var(--line);flex:none;padding:2px;cursor:zoom-in}
 .thumb.none{cursor:default;display:grid;place-items:center;font-size:11px;color:var(--muted);background:var(--bg);text-align:center}
 .sw{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);flex:none;box-shadow:inset 0 0 0 2px #fff6}
 .sw.none{background:repeating-linear-gradient(45deg,var(--bg),var(--bg) 4px,var(--line) 4px,var(--line) 8px)}
@@ -139,7 +139,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin:28px 0 8px}
     </div>
 
     <div id="pane-art" class="pane-art" hidden>
-      <div class="note"><b>Artesanato não entra na campanha Volta às Aulas.</b> Se você escolher itens aqui, eles seguem como um pedido separado, com as condições normais de artesanato. Para tintas com cor, toque em <b>Cores</b> e informe a quantidade de cada cor.</div>
+      <div class="note"><b>Artesanato não entra na campanha Volta às Aulas.</b> Se você escolher itens aqui, eles seguem como um pedido separado, com as condições normais de artesanato. Para tintas com cor, toque em <b>Cores</b> e informe a quantidade de cada cor. Cada tamanho mostra só as cores que existem nele, conforme o catálogo Acrilex.</div>
       <div class="tools">
         <input id="q-art" type="search" placeholder="Buscar por nome, código ou cor...">
         <button class="chip" aria-pressed="false" id="sel-art">Só os escolhidos</button>
@@ -230,7 +230,7 @@ function foto(p){
 document.addEventListener("click", e => {
   const c = e.target.dataset?.zoom; if (!c) return;
   const p = CAMPMAP[c] || ARTMAP[c];
-  $("#zoom img").src = `img/${c}.jpg`;
+  $("#zoom img").src = `img/z/${c}.jpg`;
   $("#zoom p").textContent = `${c} · ${p.n}`;
   $("#zoom").showModal();
 });
@@ -300,6 +300,7 @@ $("#chips").addEventListener("click", e => {
 // ---- artesanato
 let selArt = false, limArt = PAGE;
 const abertos = new Set();
+const resumo = (p, tot) => `Embalagem com ${p.e} un.${p.k.length ? ` · ${p.k.length} ${p.m ? "modelos" : "cores"}` : ""}${tot && p.k.length ? ` · <b>${tot} emb. escolhidas</b>` : ""}`;
 const qArt = p => p.k.length ? p.k.reduce((s,[cor]) => s + (pedido.art[p.c+"|"+cor]?.q || 0), 0) : (pedido.art[p.c]?.q || 0);
 function renderArt(){
   const q = norm($("#q-art").value.trim());
@@ -308,14 +309,15 @@ function renderArt(){
   const html = itens.slice(0, limArt).map(p => {
     const tot = qArt(p);
     const head = `${foto(p)}<div class="info"><div class="code">${p.c}</div><div class="name">${esc(p.n)}</div>
-      <div class="emb">Embalagem com ${p.e} un.${p.k.length ? ` · ${p.k.length} cores` : ""}${tot && p.k.length ? ` · <b>${tot} emb. escolhidas</b>` : ""}</div></div>`;
+      <div class="emb">${resumo(p, tot)}</div></div>`;
     if (!p.k.length) return `<div class="row${tot ? " on" : ""}">${head}${stepper(p.c, tot)}</div>`;
     const aberto = abertos.has(p.c) || (q && p.k.some(([cor, nome]) => cor === q || norm(nome).includes(q)));
     const cores = aberto ? `<div class="colors">${p.k.filter(([cor, nome]) => !q || norm(p.n).includes(q) || p.c.includes(q) || cor === q || norm(nome).includes(q)).map(([cor, nome, hex]) => {
       const v = pedido.art[p.c+"|"+cor]?.q;
-      return `<div class="row${v ? " on" : ""}"><span class="sw${hex ? "" : " none"}"${hex ? ` style="background:${hex}"` : ""}></span><div class="info"><div class="name">${esc(nome)}</div><div class="code">cor ${cor}</div></div>${stepper(p.c+"|"+cor, v)}</div>`;
+      const sw = p.m ? "" : `<span class="sw${hex ? "" : " none"}"${hex ? ` style="background:${hex}"` : ` title="Sem amostra no catálogo"`}></span>`;
+      return `<div class="row${v ? " on" : ""}">${sw}<div class="info"><div class="name">${esc(nome)}</div><div class="code">${p.m ? "cód." : "cor"} ${cor}</div></div>${stepper(p.c+"|"+cor, v)}</div>`;
     }).join("")}</div>` : "";
-    return `<div class="row${tot ? " on" : ""}">${head}<button class="colors-btn" data-open="${p.c}">${aberto ? "Fechar" : "Cores"}</button></div>${cores}`;
+    return `<div class="row${tot ? " on" : ""}">${head}<button class="colors-btn" data-open="${p.c}">${aberto ? "Fechar" : p.m ? "Modelos" : "Cores"}</button></div>${cores}`;
   }).join("");
   $("#list-art").innerHTML = (html || `<div class="empty">Nenhum produto encontrado.</div>`) +
     (itens.length > limArt ? `<button class="more" id="more-art">Mostrar mais (${itens.length - limArt})</button>` : "");
@@ -331,7 +333,7 @@ bindSteppers($("#list-art"), (key, q, el) => {
     if (btn){
       const pai = btn.closest(".row"), tot = qArt(p);
       pai.classList.toggle("on", tot > 0);
-      pai.querySelector(".emb").innerHTML = `Embalagem com ${p.e} un. · ${p.k.length} cores${tot ? ` · <b>${tot} emb. escolhidas</b>` : ""}`;
+      pai.querySelector(".emb").innerHTML = resumo(p, tot);
     }
   }
 });
