@@ -124,7 +124,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin:28px 0 8px}
     </div>
 
     <div id="pane-camp">
-      <div class="note"><b>Campanha Escolar e Brinquedos 2026/27.</b> Só os itens desta aba entram nas condições da campanha. A quantidade é em <b>embalagens</b> (caixa/display); o número de unidades aparece em cada item.</div>
+      <div class="note"><b>Campanha Escolar e Brinquedos 2026/27.</b> Só os itens desta aba entram nas condições da campanha. A quantidade é em <b>embalagens</b> (caixa/display); o número de unidades aparece em cada item. Produtos vendidos por cor (guache, massinhas, Kimeleka cor única...) têm o botão <b>Cores</b>.</div>
       <div class="tools">
         <input id="q-camp" type="search" placeholder="Buscar por nome ou código...">
       </div>
@@ -253,35 +253,64 @@ function bindSteppers(root, onChange){
   });
 }
 
+// ---- cores (usado nas duas abas)
+const abertos = new Set();
+const resumo = (p, tot) => `Embalagem com ${p.e} un.${p.k?.length ? ` · ${p.k.length} ${p.m ? "modelos" : "cores"}` : ""}${tot && p.k?.length ? ` · <b>${tot} emb. escolhidas</b>` : ""}`;
+const qtd = (lista, p) => p.k?.length ? p.k.reduce((s,[cor]) => s + (lista[p.c+"|"+cor]?.q || 0), 0) : (lista[p.c]?.q || 0);
+const casaCor = (p, q) => q && p.k?.some(([cor, nome]) => cor === q || norm(nome).includes(q));
+function listaCores(p, lista, q){
+  return `<div class="colors">${p.k.filter(([cor, nome]) => !q || norm(p.n).includes(q) || p.c.includes(q) || cor === q || norm(nome).includes(q)).map(([cor, nome, hex]) => {
+    const v = lista[p.c+"|"+cor]?.q;
+    const sw = p.m ? "" : `<span class="sw${hex ? "" : " none"}"${hex ? ` style="background:${hex}"` : ` title="Sem amostra no catálogo"`}></span>`;
+    return `<div class="row${v ? " on" : ""}">${sw}<div class="info"><div class="name">${esc(nome)}</div><div class="code">${p.m ? "cód." : "cor"} ${cor}</div></div>${stepper(p.c+"|"+cor, v)}</div>`;
+  }).join("")}</div>`;
+}
+function atualizaPai(root, p, lista){
+  const btn = root.querySelector(`[data-open="${p.c}"]`); if (!btn) return;
+  const pai = btn.closest(".row"), tot = qtd(lista, p);
+  pai.classList.toggle("on", tot > 0);
+  pai.querySelector(".emb").innerHTML = resumo(p, tot);
+}
+
 // ---- campanha
 let gCamp = "", limCamp = PAGE;
 function renderCamp(){
   const q = norm($("#q-camp").value.trim());
   const itens = CAMP.filter(p =>
-    (gCamp === "sel" ? pedido.camp[p.c]?.q > 0 : !gCamp || p.g === gCamp) &&
-    (!q || norm(p.n).includes(q) || p.c.includes(q)));
+    (gCamp === "sel" ? qtd(pedido.camp, p) > 0 : !gCamp || p.g === gCamp) &&
+    (!q || norm(p.n).includes(q) || p.c.includes(q) || casaCor(p, q)));
   const html = itens.slice(0, limCamp).map(p => {
+    const tot = qtd(pedido.camp, p);
+    const info = `<div class="info"><div class="code">${p.c}<span class="tag">${GRUPOS[p.g]}</span></div>
+        <div class="name">${esc(p.n)}</div><div class="emb">${resumo(p, tot)}</div>`;
+    if (p.k?.length){
+      const aberto = abertos.has(p.c) || casaCor(p, q);
+      return `<div class="row${tot ? " on" : ""}">${foto(p)}${info}</div><button class="colors-btn" data-open="${p.c}">${aberto ? "Fechar" : "Cores"}</button></div>${aberto ? listaCores(p, pedido.camp, q) : ""}`;
+    }
     const it = pedido.camp[p.c] || {};
-    return `<div class="row${it.q ? " on" : ""}">${foto(p)}
-      <div class="info"><div class="code">${p.c}<span class="tag">${GRUPOS[p.g]}</span></div>
-        <div class="name">${esc(p.n)}</div><div class="emb">Embalagem com ${p.e} un.</div>
-        ${it.q ? `<input class="obs" data-obs="${p.c}" placeholder="Cores ou observação deste item (opcional)" value="${esc(it.obs||"")}">` : ""}
+    return `<div class="row${it.q ? " on" : ""}">${foto(p)}${info}
+        ${it.q ? `<input class="obs" data-obs="${p.c}" placeholder="Observação deste item (opcional)" value="${esc(it.obs||"")}">` : ""}
       </div>${stepper(p.c, it.q)}</div>`;
   }).join("");
   $("#list-camp").innerHTML = (html || `<div class="empty">Nenhum produto encontrado.</div>`) +
     (itens.length > limCamp ? `<button class="more" id="more-camp">Mostrar mais (${itens.length - limCamp})</button>` : "");
 }
-bindSteppers($("#list-camp"), (code, q) => {
+bindSteppers($("#list-camp"), (code, q, el) => {
   if (q) pedido.camp[code] = {...pedido.camp[code], q}; else delete pedido.camp[code];
   save(); totais();
+  if (code.includes("|")){
+    el.closest(".row").classList.toggle("on", q > 0);
+    atualizaPai($("#list-camp"), CAMPMAP[code.split("|")[0]], pedido.camp);
+    return;
+  }
   // re-render só a linha para não perder o foco ao digitar
-  const row = $(`#list-camp .step[data-key="${code}"]`).closest(".row");
+  const row = el.closest(".row");
   const tinha = row.classList.contains("on");
   row.classList.toggle("on", q > 0);
   if (!!q !== tinha){
     const info = row.querySelector(".info");
     const o = info.querySelector(".obs");
-    if (q && !o) info.insertAdjacentHTML("beforeend", `<input class="obs" data-obs="${code}" placeholder="Cores ou observação deste item (opcional)" value="">`);
+    if (q && !o) info.insertAdjacentHTML("beforeend", `<input class="obs" data-obs="${code}" placeholder="Observação deste item (opcional)" value="">`);
     if (!q && o) o.remove();
   }
 });
@@ -289,7 +318,11 @@ $("#list-camp").addEventListener("input", e => {
   if (!e.target.dataset.obs) return;
   const it = pedido.camp[e.target.dataset.obs]; if (it){ it.obs = e.target.value; save(); }
 });
-$("#list-camp").addEventListener("click", e => { if (e.target.id === "more-camp"){ limCamp += PAGE; renderCamp(); } });
+$("#list-camp").addEventListener("click", e => {
+  if (e.target.id === "more-camp"){ limCamp += PAGE; renderCamp(); return; }
+  const c = e.target.dataset.open; if (!c) return;
+  abertos.has(c) ? abertos.delete(c) : abertos.add(c); renderCamp();
+});
 $("#q-camp").addEventListener("input", () => { limCamp = PAGE; renderCamp(); });
 $("#chips").addEventListener("click", e => {
   const c = e.target.closest(".chip"); if (!c) return;
@@ -299,25 +332,17 @@ $("#chips").addEventListener("click", e => {
 
 // ---- artesanato
 let selArt = false, limArt = PAGE;
-const abertos = new Set();
-const resumo = (p, tot) => `Embalagem com ${p.e} un.${p.k.length ? ` · ${p.k.length} ${p.m ? "modelos" : "cores"}` : ""}${tot && p.k.length ? ` · <b>${tot} emb. escolhidas</b>` : ""}`;
-const qArt = p => p.k.length ? p.k.reduce((s,[cor]) => s + (pedido.art[p.c+"|"+cor]?.q || 0), 0) : (pedido.art[p.c]?.q || 0);
 function renderArt(){
   const q = norm($("#q-art").value.trim());
-  const itens = ART.filter(p => (!selArt || qArt(p) > 0) &&
-    (!q || norm(p.n).includes(q) || p.c.includes(q) || p.k.some(([cor, nome]) => cor === q || norm(nome).includes(q))));
+  const itens = ART.filter(p => (!selArt || qtd(pedido.art, p) > 0) &&
+    (!q || norm(p.n).includes(q) || p.c.includes(q) || casaCor(p, q)));
   const html = itens.slice(0, limArt).map(p => {
-    const tot = qArt(p);
+    const tot = qtd(pedido.art, p);
     const head = `${foto(p)}<div class="info"><div class="code">${p.c}</div><div class="name">${esc(p.n)}</div>
       <div class="emb">${resumo(p, tot)}</div></div>`;
     if (!p.k.length) return `<div class="row${tot ? " on" : ""}">${head}${stepper(p.c, tot)}</div>`;
-    const aberto = abertos.has(p.c) || (q && p.k.some(([cor, nome]) => cor === q || norm(nome).includes(q)));
-    const cores = aberto ? `<div class="colors">${p.k.filter(([cor, nome]) => !q || norm(p.n).includes(q) || p.c.includes(q) || cor === q || norm(nome).includes(q)).map(([cor, nome, hex]) => {
-      const v = pedido.art[p.c+"|"+cor]?.q;
-      const sw = p.m ? "" : `<span class="sw${hex ? "" : " none"}"${hex ? ` style="background:${hex}"` : ` title="Sem amostra no catálogo"`}></span>`;
-      return `<div class="row${v ? " on" : ""}">${sw}<div class="info"><div class="name">${esc(nome)}</div><div class="code">${p.m ? "cód." : "cor"} ${cor}</div></div>${stepper(p.c+"|"+cor, v)}</div>`;
-    }).join("")}</div>` : "";
-    return `<div class="row${tot ? " on" : ""}">${head}<button class="colors-btn" data-open="${p.c}">${aberto ? "Fechar" : p.m ? "Modelos" : "Cores"}</button></div>${cores}`;
+    const aberto = abertos.has(p.c) || casaCor(p, q);
+    return `<div class="row${tot ? " on" : ""}">${head}<button class="colors-btn" data-open="${p.c}">${aberto ? "Fechar" : p.m ? "Modelos" : "Cores"}</button></div>${aberto ? listaCores(p, pedido.art, q) : ""}`;
   }).join("");
   $("#list-art").innerHTML = (html || `<div class="empty">Nenhum produto encontrado.</div>`) +
     (itens.length > limArt ? `<button class="more" id="more-art">Mostrar mais (${itens.length - limArt})</button>` : "");
@@ -326,16 +351,8 @@ bindSteppers($("#list-art"), (key, q, el) => {
   if (q) pedido.art[key] = {q}; else delete pedido.art[key];
   save(); totais();
   el.closest(".row").classList.toggle("on", q > 0);
-  const code = key.split("|")[0], p = ARTMAP[code];
-  if (p.k.length){
-    // atualiza o resumo do produto pai
-    const btn = $(`#list-art [data-open="${code}"]`);
-    if (btn){
-      const pai = btn.closest(".row"), tot = qArt(p);
-      pai.classList.toggle("on", tot > 0);
-      pai.querySelector(".emb").innerHTML = resumo(p, tot);
-    }
-  }
+  const p = ARTMAP[key.split("|")[0]];
+  if (p.k.length) atualizaPai($("#list-art"), p, pedido.art);
 });
 $("#list-art").addEventListener("click", e => {
   if (e.target.id === "more-art"){ limArt += PAGE; renderArt(); return; }
@@ -347,7 +364,12 @@ $("#sel-art").addEventListener("click", e => { selArt = !selArt; e.target.setAtt
 
 // ---- totais e mensagem
 function linhasCamp(){
-  return CAMP.filter(p => pedido.camp[p.c]?.q > 0).map(p => ({p, ...pedido.camp[p.c]}));
+  const out = [];
+  CAMP.forEach(p => {
+    if (!p.k?.length){ if (pedido.camp[p.c]?.q > 0) out.push({p, ...pedido.camp[p.c]}); return; }
+    p.k.forEach(([cor, nome]) => { const q = pedido.camp[p.c+"|"+cor]?.q; if (q) out.push({p, cor, corNome:nome, q}); });
+  });
+  return out;
 }
 function linhasArt(){
   const out = [];
@@ -374,9 +396,9 @@ function mensagem(){
   if (v.comprador) t += `Comprador: ${v.comprador}\n`;
   if (v.obs) t += `Obs.: ${v.obs}\n`;
   if (c.length){
-    t += `\n*CAMPANHA VOLTA ÀS AULAS (Escolar + Brinquedos)*\n\`\`\`\nCÓDIGO  QTD  PRODUTO\n`;
+    t += `\n*CAMPANHA VOLTA ÀS AULAS (Escolar + Brinquedos)*\n\`\`\`\nCÓDIGO  COR  QTD  PRODUTO\n`;
     c.forEach(x => {
-      t += `${x.p.c}  ${pad(x.q,3)}  ${x.p.n} (emb ${x.p.e})\n`;
+      t += `${x.p.c}  ${x.cor || " - "}  ${pad(x.q,3)}  ${x.p.n}${x.corNome ? " " + x.corNome.toUpperCase() : ""} (emb ${x.p.e})\n`;
       if (x.obs?.trim()) t += `             > ${x.obs.trim()}\n`;
     });
     t += `\`\`\`\nTotal: ${c.length} itens, ${c.reduce((s,x)=>s+x.q,0)} embalagens\n`;
@@ -427,7 +449,7 @@ $("#limpar").addEventListener("click", () => {
 });
 
 // remove do pedido salvo códigos que saíram da tabela
-Object.keys(pedido.camp).forEach(k => { if (!CAMPMAP[k]) delete pedido.camp[k]; });
+Object.keys(pedido.camp).forEach(k => { if (!CAMPMAP[k.split("|")[0]]) delete pedido.camp[k]; });
 Object.keys(pedido.art).forEach(k => { if (!ARTMAP[k.split("|")[0]]) delete pedido.art[k]; });
 renderCamp(); renderArt(); totais();
 </script>
