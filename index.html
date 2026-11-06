@@ -85,6 +85,9 @@ input.err{border-color:#d33;background:#d331}
 .btn.wa{background:var(--wa);color:#08301a}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:600}
 .btn:disabled{opacity:.45;cursor:default}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px}
+.sec-h h2{margin:0}
+.btn.mini{padding:7px 12px;font-size:14px}
 dialog{border:0;border-radius:14px;padding:0;width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 24px);background:var(--card);color:var(--ink)}
 dialog::backdrop{background:#0008}
 .dlg-h{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
@@ -105,7 +108,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin:28px 0 8px}
 
 <main>
   <section>
-    <h2>1. Dados da loja</h2>
+    <div class="sec-h"><h2>1. Dados da loja</h2><button class="btn ghost mini" id="novo" type="button">Novo pedido</button></div>
     <div class="card grid" id="dados">
       <div class="full"><label for="f-loja">Nome da loja / Razão social <b>*</b></label><input id="f-loja" autocomplete="organization"></div>
       <div><label for="f-cnpj">CNPJ <b>*</b></label><input id="f-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18"></div>
@@ -446,6 +449,14 @@ $("#copiar").addEventListener("click", async e => {
 $("#limpar").addEventListener("click", () => {
   if (!confirm("Apagar todos os produtos escolhidos? Os dados da loja continuam.")) return;
   pedido = {camp:{}, art:{}}; save(); $("#dlg").close(); renderCamp(); renderArt(); totais();
+});
+$("#novo").addEventListener("click", () => {
+  if (!confirm("Começar um pedido novo? Apaga os produtos escolhidos e os dados da loja (nome, CNPJ, cidade, transportadora...).")) return;
+  pedido = {camp:{}, art:{}}; save();
+  campos.forEach(c => { const el = $("#f-"+c); el.value = ""; el.classList.remove("err"); delete dadosSalvos[c]; });
+  try { localStorage.removeItem("acx-dados"); } catch(e){}
+  renderCamp(); renderArt(); totais();
+  window.scrollTo({top:0, behavior:"smooth"}); $("#f-loja").focus();
 });
 
 // remove do pedido salvo códigos que saíram da tabela
