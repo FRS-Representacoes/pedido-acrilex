@@ -90,7 +90,9 @@ input.err{border-color:#d33;background:#d331}
 .btn.mini{padding:7px 12px;font-size:14px}
 #dlg[open]{display:flex;flex-direction:column}
 #dlg .dlg-b{flex:1 1 auto;min-height:0;max-height:none}
-#dlg .dlg-f .btn.wa{order:-1;flex:1 1 100%}
+#dlg .dlg-f .btn.wa{flex:1 1 100%}
+#dlg .dlg-f .quebra{flex-basis:100%;height:0}
+#dlg .dlg-f #copiar,#dlg .dlg-f #limpar{color:var(--muted);border-color:transparent;padding:6px 8px}
 #dlg .dlg-f .btn.ghost{flex:1 1 0;padding:10px 8px;font-size:14px;white-space:nowrap}
 .pdf-ok{padding:0 16px 14px;font-size:14px;color:var(--ink)}
 .pdf-ok a{color:var(--ok);font-weight:700}
@@ -172,10 +174,12 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin:28px 0 8px}
     <pre id="preview"></pre>
   </div>
   <div class="dlg-f">
-    <button class="btn ghost" id="limpar">Limpar pedido</button>
+    <button class="btn wa" id="enviar">Enviar para o WhatsApp da FRS</button>
+    <button class="btn ghost" id="baixar">Baixar PDF</button>
+    <button class="btn ghost" id="pdf" hidden>Compartilhar PDF</button>
+    <div class="quebra"></div>
     <button class="btn ghost" id="copiar">Copiar texto</button>
-    <button class="btn ghost" id="enviar">Enviar como texto</button>
-    <button class="btn wa" id="pdf">Enviar PDF no WhatsApp</button>
+    <button class="btn ghost" id="limpar">Limpar pedido</button>
   </div>
   <div class="pdf-ok" id="pdf-ok" hidden></div>
 </dialog>
@@ -438,16 +442,45 @@ $("#go").addEventListener("click", () => {
   const f = faltando();
   $("#faltando").hidden = !f.length;
   $("#faltando").textContent = f.length ? "Antes de enviar, preencha: " + f.join(", ") + "." : "";
-  $("#enviar").disabled = !!f.length; $("#pdf").disabled = !!f.length; $("#pdf-ok").hidden = true;
+  ["#enviar", "#baixar", "#pdf"].forEach(s => $(s).disabled = !!f.length); $("#pdf-ok").hidden = true;
   $("#preview").textContent = mensagem();
   $("#dlg").showModal();
+  // gera o PDF já ao abrir, para o clique abrir o WhatsApp na hora (sem bloqueio de pop-up)
+  arquivoPDF = null;
+  promessaPDF = f.length ? null : gerarPDF().then(arq => {
+    arquivoPDF = arq;
+    $("#pdf").hidden = !navigator.canShare?.({files:[arq]});
+    return arq;
+  }).catch(() => null);
 });
 $("#close").addEventListener("click", () => {
   $("#dlg").close();
   const primeiro = document.querySelector("#dados input.err"); if (primeiro){ primeiro.scrollIntoView({block:"center"}); primeiro.focus(); }
 });
+let arquivoPDF = null, promessaPDF = null;
+function baixa(arq){
+  const url = URL.createObjectURL(arq), link = document.createElement("a");
+  link.href = url; link.download = arq.name; document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+function avisa(html){ $("#pdf-ok").innerHTML = html; $("#pdf-ok").hidden = false; }
 $("#enviar").addEventListener("click", () => {
-  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensagem())}`, "_blank");
+  const wa = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensagem())}`;
+  if (arquivoPDF) baixa(arquivoPDF);
+  const janela = window.open(wa, "_blank");
+  if (!janela) location.href = wa;
+  avisa(arquivoPDF
+    ? `Abrimos a conversa com a FRS com o pedido escrito: é só tocar em <b>enviar</b> no WhatsApp. O PDF <b>${esc(arquivoPDF.name)}</b> também foi baixado; se quiser, anexe na mesma conversa (📎 › Documento).`
+    : `Abrimos a conversa com a FRS com o pedido escrito: é só tocar em <b>enviar</b> no WhatsApp.`);
+});
+$("#baixar").addEventListener("click", async e => {
+  const b = e.currentTarget, rotulo = b.textContent;
+  b.disabled = true; b.textContent = "Gerando...";
+  const arq = arquivoPDF || await promessaPDF;
+  b.disabled = false; b.textContent = rotulo;
+  if (!arq) return avisa("Não foi possível gerar o PDF agora. Use <b>Enviar para o WhatsApp da FRS</b>.");
+  baixa(arq);
+  avisa(`PDF <b>${esc(arq.name)}</b> baixado. Você pode mandar depois pelo WhatsApp ou por e-mail para a FRS.`);
 });
 // ---- PDF do pedido
 function carregaScript(src){
@@ -527,31 +560,15 @@ async function gerarPDF(){
   const dia = agora.toISOString().slice(0, 10);
   return new File([doc.output("blob")], `Pedido-Acrilex_${slug(v.loja)}_${dia}.pdf`, {type:"application/pdf"});
 }
-$("#pdf").addEventListener("click", async e => {
-  const b = e.currentTarget, rotulo = b.textContent, aviso = $("#pdf-ok");
-  b.disabled = true; b.textContent = "Gerando PDF..."; aviso.hidden = true;
+$("#pdf").addEventListener("click", async () => {
+  const arq = arquivoPDF || await promessaPDF;
+  if (!arq) return avisa("Não foi possível gerar o PDF agora. Use <b>Enviar para o WhatsApp da FRS</b>.");
   try {
-    const arq = await gerarPDF();
-    if (navigator.canShare?.({files:[arq]})){
-      try {
-        await navigator.share({files:[arq], title:"Pedido Acrilex", text:`Pedido Acrilex - ${$("#f-loja").value.trim()}`});
-        aviso.innerHTML = "Pronto! Se ainda não enviou, escolha o <b>WhatsApp</b> e o contato da FRS.";
-      } catch(err){
-        if (err.name === "AbortError") aviso.innerHTML = "Envio cancelado. Toque de novo em <b>Enviar PDF no WhatsApp</b> e escolha o WhatsApp.";
-        else throw err;
-      }
-    } else {
-      const url = URL.createObjectURL(arq), link = document.createElement("a");
-      link.href = url; link.download = arq.name; document.body.appendChild(link); link.click(); link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-      const wa = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Olá! Segue em anexo o PDF do meu pedido Acrilex (" + $("#f-loja").value.trim() + ").")}`;
-      aviso.innerHTML = `O PDF <b>${esc(arq.name)}</b> foi baixado. <a href="${wa}" target="_blank" rel="noopener">Abrir o WhatsApp da FRS</a> e anexar o arquivo.`;
-    }
-    aviso.hidden = false;
+    await navigator.share({files:[arq], title:"Pedido Acrilex", text:`Pedido Acrilex - ${$("#f-loja").value.trim()}`});
+    avisa("Pronto! Lembre de escolher o contato da <b>FRS (44) 99908-1166</b> ou o e-mail que quiser.");
   } catch(err){
-    aviso.textContent = "Não foi possível gerar o PDF agora. Use \"Enviar como texto\".";
-    aviso.hidden = false;
-  } finally { b.disabled = false; b.textContent = rotulo; }
+    if (err.name !== "AbortError") avisa("Não foi possível compartilhar. Use <b>Baixar PDF</b>.");
+  }
 });
 $("#copiar").addEventListener("click", async e => {
   try { await navigator.clipboard.writeText(mensagem()); e.target.textContent = "Copiado!"; }
