@@ -88,6 +88,12 @@ input.err{border-color:#d33;background:#d331}
 .sec-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px}
 .sec-h h2{margin:0}
 .btn.mini{padding:7px 12px;font-size:14px}
+#dlg[open]{display:flex;flex-direction:column}
+#dlg .dlg-b{flex:1 1 auto;min-height:0;max-height:none}
+#dlg .dlg-f .btn.wa{order:-1;flex:1 1 100%}
+#dlg .dlg-f .btn.ghost{flex:1 1 0;padding:10px 8px;font-size:14px;white-space:nowrap}
+.pdf-ok{padding:0 16px 14px;font-size:14px;color:var(--ink)}
+.pdf-ok a{color:var(--ok);font-weight:700}
 dialog{border:0;border-radius:14px;padding:0;width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 24px);background:var(--card);color:var(--ink)}
 dialog::backdrop{background:#0008}
 .dlg-h{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
@@ -168,8 +174,10 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin:28px 0 8px}
   <div class="dlg-f">
     <button class="btn ghost" id="limpar">Limpar pedido</button>
     <button class="btn ghost" id="copiar">Copiar texto</button>
-    <button class="btn wa" id="enviar">Enviar no WhatsApp</button>
+    <button class="btn ghost" id="enviar">Enviar como texto</button>
+    <button class="btn wa" id="pdf">Enviar PDF no WhatsApp</button>
   </div>
+  <div class="pdf-ok" id="pdf-ok" hidden></div>
 </dialog>
 
 <dialog id="zoom"><form method="dialog"><button class="x" style="float:right" aria-label="Fechar">×</button></form><img alt=""><p></p></dialog>
@@ -430,7 +438,7 @@ $("#go").addEventListener("click", () => {
   const f = faltando();
   $("#faltando").hidden = !f.length;
   $("#faltando").textContent = f.length ? "Antes de enviar, preencha: " + f.join(", ") + "." : "";
-  $("#enviar").disabled = !!f.length;
+  $("#enviar").disabled = !!f.length; $("#pdf").disabled = !!f.length; $("#pdf-ok").hidden = true;
   $("#preview").textContent = mensagem();
   $("#dlg").showModal();
 });
@@ -440,6 +448,110 @@ $("#close").addEventListener("click", () => {
 });
 $("#enviar").addEventListener("click", () => {
   window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensagem())}`, "_blank");
+});
+// ---- PDF do pedido
+function carregaScript(src){
+  return new Promise((ok, erro) => {
+    if (document.querySelector(`script[src="${src}"]`)) return ok();
+    const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = erro; document.head.appendChild(s);
+  });
+}
+async function carregaJsPDF(){
+  await carregaScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  await carregaScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+  return window.jspdf.jsPDF;
+}
+const slug = s => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "loja";
+async function gerarPDF(){
+  const jsPDF = await carregaJsPDF();
+  const v = Object.fromEntries(campos.map(c => [c, $("#f-"+c).value.trim()]));
+  const c = linhasCamp(), a = linhasArt();
+  const agora = new Date();
+  const data = agora.toLocaleDateString("pt-BR") + " " + agora.toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
+  const doc = new jsPDF({unit:"mm", format:"a4"});
+  const W = doc.internal.pageSize.getWidth(), M = 14;
+  const LARANJA = [228,87,46], ROXO = [106,79,179], TINTA = [29,29,31], CINZA = [107,107,112];
+
+  doc.setFillColor(...TINTA); doc.rect(0, 0, W, 24, "F");
+  doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(17);
+  doc.text("PEDIDO ACRILEX", M, 12);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+  doc.text("FRS Representações · WhatsApp (44) 99908-1166", M, 18.5);
+  doc.text(data, W - M, 12, {align:"right"});
+
+  let y = 32;
+  doc.setTextColor(...TINTA);
+  const linha = (rot, val) => {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text(rot, M, y);
+    doc.setFont("helvetica", "normal");
+    const t = doc.splitTextToSize(val || "-", W - M*2 - 32); doc.text(t, M + 32, y); y += 5.5 * t.length;
+  };
+  linha("Loja", v.loja); linha("CNPJ", v.cnpj); linha("Cidade / UF", v.cidade); linha("Transportadora", v.transp);
+  if (v.comprador) linha("Comprador", v.comprador);
+  if (v.obs) linha("Observação", v.obs);
+  y += 3;
+
+  const tabela = (titulo, cor, linhas) => {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...cor);
+    doc.text(titulo, M, y); doc.setTextColor(...TINTA);
+    const tot = linhas.reduce((s, x) => s + x.qtd, 0);
+    doc.autoTable({
+      startY: y + 2, margin: {left:M, right:M},
+      head: [["Código", "Cor", "Produto", "Un./emb.", "Qtd (emb.)"]],
+      body: linhas.map(x => [x.cod, x.cor, x.prod, x.emb, x.qtd]),
+      foot: [["", "", `${linhas.length} itens`, "", tot]],
+      styles: {fontSize:9, cellPadding:1.8, textColor:TINTA, lineColor:[228,225,217], lineWidth:0.2},
+      headStyles: {fillColor:cor, textColor:255, fontStyle:"bold"},
+      footStyles: {fillColor:[246,244,239], textColor:TINTA, fontStyle:"bold"},
+      alternateRowStyles: {fillColor:[250,249,246]},
+      columnStyles: {0:{cellWidth:18}, 1:{cellWidth:14, halign:"center"}, 3:{cellWidth:20, halign:"right"}, 4:{cellWidth:22, halign:"right", fontStyle:"bold"}},
+      didParseCell: d => { if (d.section !== "body" && (d.column.index === 3 || d.column.index === 4)) d.cell.styles.halign = "right"; }
+    });
+    y = doc.lastAutoTable.finalY + 9;
+  };
+  if (c.length) tabela("Campanha Volta às Aulas (Escolar + Brinquedos)", LARANJA, c.map(x => ({
+    cod: x.p.c, cor: x.cor || "-", emb: x.p.e, qtd: x.q,
+    prod: x.p.n + (x.corNome ? " " + x.corNome.toUpperCase() : "") + (x.obs?.trim() ? "\nObs.: " + x.obs.trim() : "")
+  })));
+  if (a.length) tabela("Artesanato (fora da campanha)", ROXO, a.map(x => ({
+    cod: x.c, cor: x.cor || "-", emb: ARTMAP[x.c].e, qtd: x.q, prod: x.n + (x.corNome ? " " + x.corNome : "")
+  })));
+
+  const n = doc.getNumberOfPages();
+  for (let i = 1; i <= n; i++){
+    doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...CINZA);
+    const H = doc.internal.pageSize.getHeight();
+    doc.text("Quantidades em embalagens (caixa/display). Pedido sujeito à confirmação da FRS.", M, H - 8);
+    doc.text(`Página ${i} de ${n}`, W - M, H - 8, {align:"right"});
+  }
+  const dia = agora.toISOString().slice(0, 10);
+  return new File([doc.output("blob")], `Pedido-Acrilex_${slug(v.loja)}_${dia}.pdf`, {type:"application/pdf"});
+}
+$("#pdf").addEventListener("click", async e => {
+  const b = e.currentTarget, rotulo = b.textContent, aviso = $("#pdf-ok");
+  b.disabled = true; b.textContent = "Gerando PDF..."; aviso.hidden = true;
+  try {
+    const arq = await gerarPDF();
+    if (navigator.canShare?.({files:[arq]})){
+      try {
+        await navigator.share({files:[arq], title:"Pedido Acrilex", text:`Pedido Acrilex - ${$("#f-loja").value.trim()}`});
+        aviso.innerHTML = "Pronto! Se ainda não enviou, escolha o <b>WhatsApp</b> e o contato da FRS.";
+      } catch(err){
+        if (err.name === "AbortError") aviso.innerHTML = "Envio cancelado. Toque de novo em <b>Enviar PDF no WhatsApp</b> e escolha o WhatsApp.";
+        else throw err;
+      }
+    } else {
+      const url = URL.createObjectURL(arq), link = document.createElement("a");
+      link.href = url; link.download = arq.name; document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      const wa = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Olá! Segue em anexo o PDF do meu pedido Acrilex (" + $("#f-loja").value.trim() + ").")}`;
+      aviso.innerHTML = `O PDF <b>${esc(arq.name)}</b> foi baixado. <a href="${wa}" target="_blank" rel="noopener">Abrir o WhatsApp da FRS</a> e anexar o arquivo.`;
+    }
+    aviso.hidden = false;
+  } catch(err){
+    aviso.textContent = "Não foi possível gerar o PDF agora. Use \"Enviar como texto\".";
+    aviso.hidden = false;
+  } finally { b.disabled = false; b.textContent = rotulo; }
 });
 $("#copiar").addEventListener("click", async e => {
   try { await navigator.clipboard.writeText(mensagem()); e.target.textContent = "Copiado!"; }
