@@ -270,7 +270,7 @@ function bindSteppers(root, onChange){
 
 // ---- cores (usado nas duas abas)
 const abertos = new Set();
-const resumo = (p, tot) => `Embalagem com ${p.e} un.${p.k?.length ? ` · ${p.k.length} ${p.m ? "modelos" : "cores"}` : ""}${tot && p.k?.length ? ` · <b>${tot} emb. escolhidas</b>` : ""}`;
+const resumo = (p, tot) => `Embalagem com ${p.e} un.${p.k?.length ? ` · ${p.k.length} ${p.u || (p.m ? "modelos" : "cores")}` : ""}${tot && p.k?.length ? ` · <b>${tot} emb. escolhidas</b>` : ""}`;
 const qtd = (lista, p) => p.k?.length ? p.k.reduce((s,[cor]) => s + (lista[p.c+"|"+cor]?.q || 0), 0) : (lista[p.c]?.q || 0);
 const casaCor = (p, q) => q && p.k?.some(([cor, nome]) => cor === q || norm(nome).includes(q));
 function listaCores(p, lista, q){
@@ -300,7 +300,7 @@ function renderCamp(){
         <div class="name">${esc(p.n)}</div><div class="emb">${resumo(p, tot)}</div>`;
     if (p.k?.length){
       const aberto = abertos.has(p.c) || casaCor(p, q);
-      return `<div class="row${tot ? " on" : ""}">${foto(p)}${info}</div><button class="colors-btn" data-open="${p.c}">${aberto ? "Fechar" : "Cores"}</button></div>${aberto ? listaCores(p, pedido.camp, q) : ""}`;
+      return `<div class="row${tot ? " on" : ""}">${foto(p)}${info}</div><button class="colors-btn" data-open="${p.c}">${aberto ? "Fechar" : p.u ? "Tamanhos" : "Cores"}</button></div>${aberto ? listaCores(p, pedido.camp, q) : ""}`;
     }
     const it = pedido.camp[p.c] || {};
     return `<div class="row${it.q ? " on" : ""}">${foto(p)}${info}
